@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/manifoldco/promptui"
 )
@@ -71,7 +70,6 @@ func main() {
 func getTestsFromDir(dir string) []Test {
 	availableTests := []Test{}
 
-	start := time.Now()
 	err := filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
@@ -90,10 +88,6 @@ func getTestsFromDir(dir string) []Test {
 	})
 	if err != nil {
 		panic(err)
-	}
-
-	if debug {
-		fmt.Println("Time to walk the directory:", time.Since(start))
 	}
 
 	return availableTests
@@ -123,11 +117,17 @@ func selectTest(availableTests []Test) Test {
 	}
 
 	index, _, err := subtestPrompt.Run()
-	if err != nil {
+	switch {
+	case err == nil:
+		return availableTests[index]
+	case err == promptui.ErrInterrupt:
+		fmt.Println("No Test Selected")
+		os.Exit(0)
+	default:
 		panic(err)
 	}
 
-	return availableTests[index]
+	return Test{}
 }
 
 func executeTests(t Test) exec.Cmd {
