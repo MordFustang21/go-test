@@ -295,7 +295,10 @@ func loadAST(path string) []Test {
 									// check if the call is to t.Run
 									// if it is, add the subtest to the list of tests
 									// if it isn't, continue
-									f := c.Fun.(*ast.SelectorExpr)
+									f, ok := c.Fun.(*ast.SelectorExpr)
+									if !ok {
+										continue
+									}
 
 									if f.Sel.Name == "Run" {
 										// we are inside the t.Run call we can lookup the test name from here
