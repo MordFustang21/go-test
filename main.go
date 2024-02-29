@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -215,6 +216,14 @@ func executeTests(t Test) exec.Cmd {
 	fmt.Println("Running", cmd.Args, "@", cmd.Dir)
 
 	err = cmd.Run()
+	switch {
+	case err == nil:
+	// do nothing
+	case errors.Is(err, &exec.ExitError{}):
+	// do nothing
+	default:
+		panic(err)
+	}
 	if err != nil {
 		panic(err)
 	}
