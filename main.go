@@ -54,6 +54,11 @@ func main() {
 		runHistoryEntry(he)
 	case subtest:
 		availableTests := getTestsFromDir(readDir)
+		if len(availableTests) == 0 {
+			fmt.Println("No tests found in the directory")
+			os.Exit(1)
+		}
+
 		// select a test file and testToRun
 		testToRun := selectTest(availableTests)
 
@@ -71,7 +76,11 @@ func main() {
 func getTestsFromDir(dir string) []Test {
 	availableTests := []Test{}
 
-	err := filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
+	err := filepath.WalkDir(dir, func(path string, info fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+
 		if info.IsDir() {
 			return nil
 		}
@@ -140,7 +149,6 @@ func executeTests(t Test) exec.Cmd {
 	}
 
 	modRoot := lookupModuleRoot(path)
-
 	if modRoot == "" {
 		panic("could not find module root")
 	}
