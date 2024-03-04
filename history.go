@@ -1,20 +1,33 @@
 package main
 
 import (
-	"bufio"
+	"crypto/md5"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/manifoldco/promptui"
+	bolt "go.etcd.io/bbolt"
 )
 
-const historyFile = ".go-test-history"
+const historyFile = ".go-test.db"
 
 // HistoryEntry is a single entry in the history file.
 type HistoryEntry struct {
-	Path string
-	Args []string
-	Dir  string
+	Timestamp time.Time
+	Path      string
+	Args      []string
+	Dir       string
+}
+
+// String returns a string representation of the HistoryEntry.
+func (h HistoryEntry) String() string {
+	return fmt.Sprintf("%s - %s", h.Timestamp.Format("01/02/2006 @ 15:04:05"), strings.Join(h.Args, " "))
 }
 
 // JSON converts the HistoryEntry to a JSON byte slice.
@@ -35,74 +48,147 @@ func (h *HistoryEntry) Load(data []byte) {
 	}
 }
 
-func getHistoryFile() *os.File {
+// Hash returns a hash of the HistoryEntry.
+func (h HistoryEntry) Hash() string {
+	hash := md5.Sum([]byte(fmt.Sprintf("%s-%s-%s", h.Path, strings.Join(h.Args, " "), h.Dir)))
+	key := fmt.Sprintf("%x", hash)
+
+	return key
+}
+
+func getHistoryFile(file string) *bolt.DB {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
 	}
 
-	p := filepath.Join(home, historyFile)
+	p := filepath.Join(home, file)
 
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	db, err := bolt.Open(p, 0600, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	return f
+	return db
 }
 
 func logRunHistory(command exec.Cmd) {
-	// get current working directory and make it relative to the command's directory
-	// this is so we can store the command and execute from any directory
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	rootPath := filepath.Join(wd, command.Dir)
-
 	he := HistoryEntry{
-		Path: command.Path,
-		Args: command.Args,
-		Dir:  rootPath,
+		Path:      command.Path,
+		Args:      command.Args,
+		Dir:       command.Dir,
+		Timestamp: time.Now(),
 	}
 
-	file := getHistoryFile()
+	file := getHistoryFile(historyFile)
 	defer file.Close()
 
 	// write the command to the file
-	_, err = file.Write(append(he.JSON(), '\n'))
+	err := file.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("history"))
+		if err != nil {
+			return err
+		}
+
+		// todo: limit this to n entries using a config
+		// key is a hash of the path, args, and dir.
+		key := he.Hash()
+
+		b.Put([]byte(key), he.JSON())
+
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}
 }
 
-func selectHistory() HistoryEntry {
-	file := getHistoryFile()
+func selectHistory() (HistoryEntry, error) {
+	file := getHistoryFile(historyFile)
 	defer file.Close()
 
-	return HistoryEntry{}
+	var entries []HistoryEntry
+	err := file.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("history"))
+		if b == nil {
+			return nil
+		}
+
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var he HistoryEntry
+			he.Load(v)
+
+			entries = append(entries, he)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return HistoryEntry{}, fmt.Errorf("error retrieving history %w", err)
+	}
+
+	subtestPrompt := promptui.Select{
+		Label: "Run from history",
+		Items: entries,
+		Templates: &promptui.SelectTemplates{
+			// Label:    `{{ .Timestamp.Format "01/02/2006 @ 3:4:5" }}`,
+			Active:   "\U0001F449 {{ . }}",
+			Inactive: `{{ . }}`,
+			Selected: "{{ . }}",
+		},
+		Searcher: func(input string, index int) bool {
+			test := entries[index]
+			if strings.Contains(strings.ToLower(test.String()), strings.ToLower(input)) {
+				return true
+			}
+
+			return false
+		},
+	}
+
+	index, _, err := subtestPrompt.Run()
+	switch {
+	case err == nil:
+	case err == promptui.ErrInterrupt:
+		fmt.Println("No history selected. Exiting.")
+		os.Exit(0)
+	default:
+		return HistoryEntry{}, fmt.Errorf("error selecting history %w", err)
+	}
+
+	return entries[index], nil
 }
 
-func getLastCommand() HistoryEntry {
-	file := getHistoryFile()
+func getLastCommand() (HistoryEntry, error) {
+	file := getHistoryFile(historyFile)
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	var lastCommand HistoryEntry
+	err := file.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("history"))
+		if b == nil {
+			return nil
+		}
 
-	var lastLine string
-	for scanner.Scan() {
-		lastLine = scanner.Text()
+		b.ForEach(func(k, v []byte) error {
+			var he HistoryEntry
+			he.Load(v)
+
+			if lastCommand.Timestamp.Before(he.Timestamp) {
+				lastCommand = he
+			}
+
+			return nil
+		})
+
+		return nil
+	})
+	if err != nil {
+		return HistoryEntry{}, fmt.Errorf("error viewing history file %w", err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		panic(err)
-	}
-
-	var he HistoryEntry
-	he.Load([]byte(lastLine))
-
-	return he
+	return lastCommand, nil
 }
 
 func runHistoryEntry(he HistoryEntry) {
@@ -114,8 +200,16 @@ func runHistoryEntry(he HistoryEntry) {
 		Stderr: os.Stderr,
 	}
 
+	fmt.Println("Running", cmd.Args, "@", cmd.Dir)
+
 	err := cmd.Run()
-	if err != nil {
+	var exit *exec.ExitError
+	switch {
+	case err == nil:
+	// do nothing
+	case errors.As(err, &exit):
+	// do nothing
+	default:
 		panic(err)
 	}
 }

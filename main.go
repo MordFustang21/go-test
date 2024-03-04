@@ -18,45 +18,75 @@ import (
 
 var (
 	// Flags for the program
-	subtest        bool
-	debug          bool
-	runFromHistory bool
-	rerun          bool
+	subtest        = flag.Bool("s", false, "Run a specific subtest")
+	debug          = flag.Bool("debug", false, "Enable debug mode")
+	runFromHistory = flag.Bool("his", false, "Run a specific command from the history")
+	rerun          = flag.Bool("r", false, "Re-run the last test")
 
 	// extra test features
-	withCoverage      bool
-	withCPUProfile    bool
-	withMemoryProfile bool
+	benchmark         = flag.Bool("b", false, "Run a specific benchmark.")
+	withCoverage      = flag.Bool("cover", false, "Run the test with coverage and auto launch the viewer")
+	withCPUProfile    = flag.Bool("cpu", false, "Run the test with a CPU profile")
+	withMemoryProfile = flag.Bool("mem", false, "Run the test with a memory profile")
 )
 
 func main() {
-	flag.BoolVar(&rerun, "r", false, "Re-run the last test")
-	flag.BoolVar(&subtest, "s", false, "Run a specific subtest.")
-	flag.BoolVar(&debug, "debug", false, "Enable debug mode.")
-	flag.BoolVar(&runFromHistory, "his", false, "Run a specific command from the history")
-	flag.BoolVar(&withCoverage, "cover", false, "Run the test with coverage and auto launch the viewer")
-	flag.BoolVar(&withCPUProfile, "cpu", false, "Run the test with a CPU profile")
-	flag.BoolVar(&withMemoryProfile, "mem", false, "Run the test with a memory profile")
 	flag.Parse()
+	err := run()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
 
+func run() error {
 	readDir := flag.Arg(0)
 	if readDir == "" {
 		readDir, _ = os.Getwd()
 	}
 
 	switch {
-	case runFromHistory:
+	case *benchmark:
+		// get benchmarks
+		benchmarks, err := getTestsFromDir(readDir, true)
+		if err != nil {
+			return fmt.Errorf("error getting benchmarks: %w", err)
+		}
+
+		if len(benchmarks) == 0 {
+			fmt.Println("No benchmarks found in the directory")
+			return nil
+		}
+
+		selected := selectTest(benchmarks)
+		runBenchmark(selected)
+
+	case *runFromHistory:
 		// todo: show history and select an option
-		he := selectHistory()
+		he, err := selectHistory()
+		if err != nil {
+			return fmt.Errorf("error selecting history: %w", err)
+		}
+
 		runHistoryEntry(he)
-	case rerun:
-		he := getLastCommand()
+
+	case *rerun:
+		he, err := getLastCommand()
+		if err != nil {
+			return fmt.Errorf("error getting last command: %w", err)
+		}
+
 		runHistoryEntry(he)
-	case subtest:
-		availableTests := getTestsFromDir(readDir)
+
+	case *subtest:
+		availableTests, err := getTestsFromDir(readDir, false)
+		if err != nil {
+			return fmt.Errorf("error getting tests: %w", err)
+		}
+
 		if len(availableTests) == 0 {
 			fmt.Println("No tests found in the directory")
-			os.Exit(1)
+			return nil
 		}
 
 		// select a test file and testToRun
@@ -71,9 +101,11 @@ func main() {
 		logRunHistory(cmd)
 
 	}
+
+	return nil
 }
 
-func getTestsFromDir(dir string) []Test {
+func getTestsFromDir(dir string, benchmarks bool) ([]Test, error) {
 	availableTests := []Test{}
 
 	err := filepath.WalkDir(dir, func(path string, info fs.DirEntry, err error) error {
@@ -86,21 +118,26 @@ func getTestsFromDir(dir string) []Test {
 		}
 
 		// if the file isn't a _test.go file, skip it
-		if filepath.Ext(path) != "go" && !strings.Contains(filepath.Base(path), "_test") {
+		if !strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
 
 		// load in AST of the file and find test functions
-		testFuncs := loadAST(path)
-		availableTests = append(availableTests, testFuncs...)
+		if benchmarks {
+			testFuncs := findBenchmarks(path)
+			availableTests = append(availableTests, testFuncs...)
+		} else {
+			testFuncs := loadAST(path)
+			availableTests = append(availableTests, testFuncs...)
+		}
 
 		return nil
 	})
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("error walking the path %s: %w", dir, err)
 	}
 
-	return availableTests
+	return availableTests, nil
 }
 
 func selectTest(availableTests []Test) Test {
@@ -141,27 +178,7 @@ func selectTest(availableTests []Test) Test {
 }
 
 func executeTests(t Test) exec.Cmd {
-	path := t.File
-
-	// if this is a file and not a directory, use the directory of the file
-	if filepath.Ext(t.File) != "" {
-		path = filepath.Dir(t.File)
-	}
-
-	modRoot := lookupModuleRoot(path)
-	if modRoot == "" {
-		panic("could not find module root")
-	}
-
-	// convert path to a module path
-	path, _ = filepath.Rel(modRoot, path)
-	path = "./" + path
-
-	// in the event the directory is the root of the module, we need to add an extra ".." to
-	// tell go test to recursively run all tests
-	if path == "./." {
-		path += ".."
-	}
+	path, modRoot := testToPathAndRoot(t)
 
 	args := []string{"test", "-v", path}
 	if t.Name != "" {
@@ -169,7 +186,7 @@ func executeTests(t Test) exec.Cmd {
 	}
 
 	var coverFile string
-	if withCoverage {
+	if *withCoverage {
 		tempFile, err := os.CreateTemp("", "go-test_"+t.Name)
 		if err != nil {
 			panic(err)
@@ -182,26 +199,26 @@ func executeTests(t Test) exec.Cmd {
 	}
 
 	var cpuProfile string
-	if withCPUProfile {
+	if *withCPUProfile {
 		tempFile, err := os.CreateTemp("", "go-test_"+t.Name)
 		if err != nil {
 			panic(err)
 		}
 
-		coverFile = tempFile.Name()
+		cpuProfile = tempFile.Name()
 		tempFile.Close()
 
 		args = append(args, "-cpuprofile", cpuProfile)
 	}
 
 	var memoryProfile string
-	if withCPUProfile {
+	if *withCPUProfile {
 		tempFile, err := os.CreateTemp("", "go-test_"+t.Name)
 		if err != nil {
 			panic(err)
 		}
 
-		coverFile = tempFile.Name()
+		memoryProfile = tempFile.Name()
 		tempFile.Close()
 
 		args = append(args, "-memprofile", memoryProfile)
@@ -224,20 +241,18 @@ func executeTests(t Test) exec.Cmd {
 	fmt.Println("Running", cmd.Args, "@", cmd.Dir)
 
 	err = cmd.Run()
+	var exit *exec.ExitError
 	switch {
 	case err == nil:
 	// do nothing
-	case errors.Is(err, &exec.ExitError{}):
+	case errors.As(err, &exit):
 	// do nothing
 	default:
 		panic(err)
 	}
-	if err != nil {
-		panic(err)
-	}
 
 	// if coverage was enabled launch the UI to view it
-	if withCoverage {
+	if *withCoverage {
 		cmd := exec.Cmd{
 			Path:   p,
 			Env:    os.Environ(),
@@ -253,30 +268,29 @@ func executeTests(t Test) exec.Cmd {
 		}
 	}
 
-	return cmd
-}
-
-func lookupModuleRoot(path string) string {
-	// start at end and work backwards to find the go.mod file
-	for {
-		if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
-			return path
-		}
-
-		path = filepath.Dir(path)
-
-		if path == "/" {
-			break
-		}
+	if *withCPUProfile {
+		fmt.Println("Wrote CPU Profile to:", cpuProfile)
+		// show top methods
+		cmd := exec.Command("go", "tool", "pprof", "-top", cpuProfile)
+		cmd.Stdout = os.Stdout
+		cmd.Run()
 	}
 
-	return ""
+	if *withMemoryProfile {
+		fmt.Println("Wrote Memory Profile to:", memoryProfile)
+		cmd := exec.Command("go", "tool", "pprof", "-top", memoryProfile)
+		cmd.Stdout = os.Stdout
+		cmd.Run()
+	}
+
+	return cmd
 }
 
 // Test represents a test case and the file it is in.
 type Test struct {
-	File string
-	Name string
+	File        string
+	Name        string
+	IsBenchmark bool
 }
 
 // loadAST loads the AST of a file and returns all test functions in the file.
@@ -292,7 +306,7 @@ func loadAST(path string) []Test {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			if debug {
+			if *debug {
 				fmt.Println("Evalutating", x.Name.Name)
 			}
 
