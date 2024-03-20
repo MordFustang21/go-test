@@ -93,12 +93,12 @@ func run() error {
 		testToRun := selectTest(availableTests)
 
 		// execute the test
-		cmd := executeTests(testToRun)
-		logRunHistory(cmd)
+		cmd, pass := executeTests(testToRun)
+		logRunHistory(cmd, pass)
 	default:
 		// run a test for the directory
-		cmd := executeTests(Test{File: readDir})
-		logRunHistory(cmd)
+		cmd, pass := executeTests(Test{File: readDir})
+		logRunHistory(cmd, pass)
 
 	}
 
@@ -152,10 +152,7 @@ func selectTest(availableTests []Test) Test {
 		},
 		Searcher: func(input string, index int) bool {
 			test := availableTests[index]
-			if strings.Contains(
-				strings.ToLower(test.Name),
-				strings.ToLower(input),
-			) {
+			if strings.Contains(strings.ToLower(test.Name), strings.ToLower(input)) {
 				return true
 			}
 
@@ -177,7 +174,7 @@ func selectTest(availableTests []Test) Test {
 	return Test{}
 }
 
-func executeTests(t Test) exec.Cmd {
+func executeTests(t Test) (exec.Cmd, bool) {
 	path, modRoot := testToPathAndRoot(t)
 
 	args := []string{"test", "-v", path}
@@ -240,10 +237,12 @@ func executeTests(t Test) exec.Cmd {
 
 	fmt.Println("Running", cmd.Args, "@", cmd.Dir)
 
+	var pass bool
 	err = cmd.Run()
 	var exit *exec.ExitError
 	switch {
 	case err == nil:
+		pass = true
 	// do nothing
 	case errors.As(err, &exit):
 	// do nothing
@@ -283,7 +282,7 @@ func executeTests(t Test) exec.Cmd {
 		cmd.Run()
 	}
 
-	return cmd
+	return cmd, pass
 }
 
 // Test represents a test case and the file it is in.
