@@ -19,15 +19,25 @@ const historyFile = ".go-test.db"
 
 // HistoryEntry is a single entry in the history file.
 type HistoryEntry struct {
-	Timestamp time.Time
-	Path      string
-	Args      []string
-	Dir       string
+	Timestamp     time.Time
+	Path          string
+	Args          []string
+	Dir           string
+	LastRunStatus bool
 }
 
 // String returns a string representation of the HistoryEntry.
 func (h HistoryEntry) String() string {
-	return fmt.Sprintf("%s - %s", h.Timestamp.Format("01/02/2006 @ 15:04:05"), strings.Join(h.Args, " "))
+	return fmt.Sprintf("%s - %s %s", h.Timestamp.Format("01/02/2006 @ 15:04:05"), strings.Join(h.Args, " "),
+		statusToStr(h.LastRunStatus))
+}
+
+func statusToStr(b bool) string {
+	if b {
+		return "✅"
+	}
+
+	return "❌"
 }
 
 // JSON converts the HistoryEntry to a JSON byte slice.
@@ -72,12 +82,13 @@ func getHistoryFile(file string) *bolt.DB {
 	return db
 }
 
-func logRunHistory(command exec.Cmd) {
+func logRunHistory(command exec.Cmd, pass bool) {
 	he := HistoryEntry{
-		Path:      command.Path,
-		Args:      command.Args,
-		Dir:       command.Dir,
-		Timestamp: time.Now(),
+		Path:          command.Path,
+		Args:          command.Args,
+		Dir:           command.Dir,
+		Timestamp:     time.Now(),
+		LastRunStatus: pass,
 	}
 
 	file := getHistoryFile(historyFile)
@@ -202,14 +213,18 @@ func runHistoryEntry(he HistoryEntry) {
 
 	fmt.Println("Running", cmd.Args, "@", cmd.Dir)
 
+	var pass bool
 	err := cmd.Run()
 	var exit *exec.ExitError
 	switch {
 	case err == nil:
+		pass = true
 	// do nothing
 	case errors.As(err, &exit):
 	// do nothing
 	default:
 		panic(err)
 	}
+
+	logRunHistory(cmd, pass)
 }
