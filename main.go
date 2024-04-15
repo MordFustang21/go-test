@@ -4,9 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -127,7 +124,7 @@ func getTestsFromDir(dir string, benchmarks bool) ([]Test, error) {
 			testFuncs := findBenchmarks(path)
 			availableTests = append(availableTests, testFuncs...)
 		} else {
-			testFuncs := loadAST(path)
+			testFuncs := findTests(path)
 			availableTests = append(availableTests, testFuncs...)
 		}
 
@@ -290,91 +287,4 @@ type Test struct {
 	File        string
 	Name        string
 	IsBenchmark bool
-}
-
-// loadAST loads the AST of a file and returns all test functions in the file.
-func loadAST(path string) []Test {
-	var tests []Test
-
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
-	if err != nil {
-		panic(err)
-	}
-
-	ast.Inspect(f, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.FuncDecl:
-			if *debug {
-				fmt.Println("Evalutating", x.Name.Name)
-			}
-
-			if strings.HasPrefix(x.Name.Name, "Test") && x.Name.Name != "TestMain" {
-				var subtests []string
-
-			testFunc:
-				for _, item := range x.Body.List {
-					switch stmt := item.(type) {
-					case *ast.RangeStmt:
-						// check body for call to t.Run
-						for _, forItem := range stmt.Body.List {
-							switch forT := forItem.(type) {
-							case *ast.ExprStmt:
-								switch c := forT.X.(type) {
-								case *ast.CallExpr:
-									// check if the call is to t.Run
-									// if it is, add the subtest to the list of tests
-									// if it isn't, continue
-									f, ok := c.Fun.(*ast.SelectorExpr)
-									if !ok {
-										continue
-									}
-
-									if f.Sel.Name == "Run" {
-										// we are inside the t.Run call we can lookup the test name from here
-										// set the argName so we can look it up on the list of test structs
-
-										// set args to the first argument of the t.Run call (the subtest name)
-										argName := c.Args[0].(*ast.SelectorExpr).Sel.Name
-										testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
-
-										for _, el := range testData.(*ast.CompositeLit).Elts {
-											for _, structField := range el.(*ast.CompositeLit).Elts {
-												field := structField.(*ast.KeyValueExpr)
-												if field.Key.(*ast.Ident).Name == argName {
-													testName := field.Value.(*ast.BasicLit).Value
-													subtests = append(subtests, strings.ReplaceAll(testName, "\"", ""))
-												}
-											}
-										}
-
-										// all subtests have been added
-										break testFunc
-									}
-								}
-							}
-						}
-					}
-				}
-
-				// create entry to run the whole test function
-				tests = append(tests, Test{
-					File: path,
-					Name: x.Name.Name,
-				})
-
-				// add in subtests if they exist
-				for _, subtest := range subtests {
-					tests = append(tests, Test{
-						File: path,
-						Name: x.Name.Name + "/" + subtest,
-					})
-				}
-			}
-		}
-
-		return true
-	})
-
-	return tests
 }
