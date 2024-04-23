@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"strings"
 )
 
@@ -24,7 +23,6 @@ func findTests(path string) []Test {
 		defer func() {
 			if r := recover(); r != nil {
 				fmt.Printf("Error in file %s : %s\n", path, r)
-				os.Exit(1)
 			}
 		}()
 
@@ -36,6 +34,12 @@ func findTests(path string) []Test {
 
 			if strings.HasPrefix(x.Name.Name, "Test") && x.Name.Name != "TestMain" {
 				var subtests []string
+
+				// create entry to run the whole test function
+				tests = append(tests, Test{
+					File: path,
+					Name: x.Name.Name,
+				})
 
 			testFunc:
 				for _, item := range x.Body.List {
@@ -95,12 +99,6 @@ func findTests(path string) []Test {
 						}
 					}
 				}
-
-				// create entry to run the whole test function
-				tests = append(tests, Test{
-					File: path,
-					Name: x.Name.Name,
-				})
 
 				// add in subtests if they exist
 				for _, subtest := range subtests {

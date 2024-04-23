@@ -1,7 +1,6 @@
 package main
 
 import (
-	"slices"
 	"testing"
 )
 
@@ -24,9 +23,17 @@ func Test_findTests(t *testing.T) {
 				t.Fatalf("expected %d tests, got %d", len(tt.tests), len(found))
 			}
 
-			for _, test := range found {
-				if !slices.Contains(tt.tests, test) {
-					t.Fatalf("expected to find test %s", test.Name)
+			for _, foundTest := range found {
+				found := false
+				for _, expectedTest := range tt.tests {
+					if foundTest == expectedTest {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					t.Fatalf("unexpcted test %s", foundTest.Name)
 				}
 			}
 		})
