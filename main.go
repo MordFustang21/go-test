@@ -253,7 +253,7 @@ func executeTests(t Test) (exec.Cmd, bool) {
 			Path:   p,
 			Env:    os.Environ(),
 			Dir:    modRoot,
-			Args:   []string{"tool", "cover", "-html=" + coverFile},
+			Args:   []string{"go", "tool", "cover", "-html=" + coverFile},
 			Stdout: os.Stdout,
 			Stderr: os.Stderr,
 		}
