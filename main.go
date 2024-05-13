@@ -25,6 +25,8 @@ var (
 
 	// extra test features
 	benchmark         = flag.Bool("b", false, "Run a specific benchmark.")
+	benchMem          = flag.Bool("bm", false, "Run a specific benchmark with memory profiling")
+	benchResults      = flag.Bool("br", false, "Show the results of the last benchmark")
 	withCoverage      = flag.Bool("cover", false, "Run the test with coverage and auto launch the viewer")
 	withCPUProfile    = flag.Bool("cpu", false, "Run the test with a CPU profile")
 	withMemoryProfile = flag.Bool("mem", false, "Run the test with a memory profile")
@@ -46,7 +48,12 @@ func run() error {
 	}
 
 	switch {
-	case *benchmark:
+	case *benchmark, *benchMem:
+		if !*subtest {
+			runBenchmark(Test{File: readDir})
+			return nil
+		}
+
 		// get benchmarks
 		benchmarks, err := getTestsFromDir(readDir, true)
 		if err != nil {
@@ -60,6 +67,12 @@ func run() error {
 
 		selected := selectTest(benchmarks)
 		runBenchmark(selected)
+		
+	case *benchResults:
+		// show select for benchmarks
+		benchmarks := getBenchmarkResults()
+		selected := selectBenchmarkResult(benchmarks)
+		println(string(selected))
 
 	case *runFromHistory:
 		// todo: show history and select an option

@@ -66,7 +66,7 @@ func (h HistoryEntry) Hash() string {
 	return key
 }
 
-func getHistoryFile(file string) *bolt.DB {
+func getDBInstance(file string) *bolt.DB {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -91,7 +91,7 @@ func logRunHistory(command exec.Cmd, pass bool) {
 		LastRunStatus: pass,
 	}
 
-	file := getHistoryFile(historyFile)
+	file := getDBInstance(historyFile)
 	defer file.Close()
 
 	// write the command to the file
@@ -115,7 +115,7 @@ func logRunHistory(command exec.Cmd, pass bool) {
 }
 
 func selectHistory() (HistoryEntry, error) {
-	file := getHistoryFile(historyFile)
+	file := getDBInstance(historyFile)
 	defer file.Close()
 
 	var entries []HistoryEntry
@@ -172,7 +172,7 @@ func selectHistory() (HistoryEntry, error) {
 }
 
 func getLastCommand() (HistoryEntry, error) {
-	file := getHistoryFile(historyFile)
+	file := getDBInstance(historyFile)
 	defer file.Close()
 
 	var lastCommand HistoryEntry
