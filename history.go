@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -138,6 +139,15 @@ func selectHistory() (HistoryEntry, error) {
 	if err != nil {
 		return HistoryEntry{}, fmt.Errorf("error retrieving history %w", err)
 	}
+
+	// sort the entries by timestamp
+	slices.SortFunc(entries, func(a, b HistoryEntry) int {
+		if a.Timestamp.Before(b.Timestamp) {
+			return 1
+		}
+
+		return -1
+	})
 
 	subtestPrompt := promptui.Select{
 		Label: "Run from history",
