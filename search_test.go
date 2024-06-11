@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_findTests(t *testing.T) {
@@ -10,8 +12,11 @@ func Test_findTests(t *testing.T) {
 		tests []Test
 	}{
 		{
-			file:  "testdata/bit_of_everything.go",
-			tests: []Test{},
+			file: "testdata/nested_t_run_string.go",
+			tests: []Test{
+				{Name: "Test_Nested", File: "testdata/nested_t_run_string.go"},
+				{Name: "Test_Nested/L1", File: "testdata/nested_t_run_string.go"},
+			},
 		},
 	}
 
@@ -19,23 +24,7 @@ func Test_findTests(t *testing.T) {
 		t.Run(tt.file, func(t *testing.T) {
 			found := findTests(tt.file)
 			// verify tests are found
-			if len(found) != len(tt.tests) {
-				t.Fatalf("expected %d tests, got %d", len(tt.tests), len(found))
-			}
-
-			for _, foundTest := range found {
-				found := false
-				for _, expectedTest := range tt.tests {
-					if foundTest == expectedTest {
-						found = true
-						break
-					}
-				}
-
-				if !found {
-					t.Fatalf("unexpcted test %s", foundTest.Name)
-				}
-			}
+			assert.Equal(t, tt.tests, found)
 		})
 	}
 }
