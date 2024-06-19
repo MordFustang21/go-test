@@ -5,8 +5,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"strings"
 	dbg "runtime/debug"
+	"strings"
 )
 
 // findTests loads the AST of a file and returns all test functions in the file.
@@ -33,136 +33,28 @@ func findTests(path string) []Test {
 				fmt.Println("Evalutating", x.Name.Name)
 			}
 
-			if strings.HasPrefix(x.Name.Name, "Test") && x.Name.Name != "TestMain" {
-				var subtests []string
+			// skip non test functions
+			if !strings.HasPrefix(x.Name.Name, "Test") || x.Name.Name == "TestMain" {
+				return true
+			}
 
-				// create entry to run the whole test function
+			// create root test entry
+			tests = append(tests, Test{
+				File: path,
+				Name: x.Name.Name,
+			})
+
+			var subtests []string
+			for _, item := range x.Body.List {
+				subtests = append(subtests, astToTests(x.Name.Name, item)...)
+			}
+
+			// convert subtests into Test entries
+			for _, subtest := range subtests {
 				tests = append(tests, Test{
 					File: path,
-					Name: x.Name.Name,
+					Name: subtest,
 				})
-
-			testFunc:
-				for _, item := range x.Body.List {
-					switch stmt := item.(type) {
-					case *ast.ExprStmt:
-						switch c := stmt.X.(type) {
-						case *ast.CallExpr:
-							// check if the call is to t.Run
-							// if it is, add the subtest to the list of tests
-							// if it isn't, continue
-							f, ok := c.Fun.(*ast.SelectorExpr)
-							if !ok {
-								continue
-							}
-
-							if f.Sel.Name == "Run" {
-								// we are inside the t.Run call we can lookup the test name from here
-								// set the argName so we can look it up on the list of test structs
-
-								// set args to the first argument of the t.Run call (the subtest name)
-
-								// if the argument is a basic literal, add it to the list of subtests
-								if v, ok := c.Args[0].(*ast.BasicLit); ok {
-									subtests = append(subtests, strings.ReplaceAll(v.Value, "\"", ""))
-									continue
-								}
-
-								// if the argument is a composite literal, we have to look up the field name
-								fieldName := c.Args[0].(*ast.SelectorExpr).Sel.Name
-								testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
-
-								for _, el := range testData.(*ast.CompositeLit).Elts {
-									lit := el.(*ast.CompositeLit)
-									for _, structField := range lit.Elts {
-										switch t := structField.(type) {
-										case *ast.BasicLit:
-											// this struct isn't keyed so we have to look up parent struct and compare the field name
-											subtests = append(subtests, strings.ReplaceAll(t.Value, "\"", ""))
-											break
-										case *ast.KeyValueExpr:
-											if t.Key.(*ast.Ident).Name == fieldName {
-												testName := t.Value.(*ast.BasicLit).Value
-												subtests = append(subtests, strings.ReplaceAll(testName, "\"", ""))
-												break
-											}
-										case *ast.FuncLit:
-										// if the subtest is a function literal, we can't get the name from the AST
-										case *ast.CompositeLit:
-										default:
-											panic(fmt.Sprintf("Unknown type %T @ %d", t, structField.Pos()))
-										}
-									}
-								}
-
-								// all subtests have been added
-								break testFunc
-							}
-						}
-
-					// look for range statement that's iterating over t.Run calls
-					case *ast.RangeStmt:
-						// check body for call to t.Run
-						for _, forItem := range stmt.Body.List {
-							switch forT := forItem.(type) {
-							case *ast.ExprStmt:
-								switch c := forT.X.(type) {
-								case *ast.CallExpr:
-									// check if the call is to t.Run
-									// if it is, add the subtest to the list of tests
-									// if it isn't, continue
-									f, ok := c.Fun.(*ast.SelectorExpr)
-									if !ok {
-										continue
-									}
-
-									if f.Sel.Name == "Run" {
-										// we are inside the t.Run call we can lookup the test name from here
-										// set the argName so we can look it up on the list of test structs
-
-										// set args to the first argument of the t.Run call (the subtest name)
-										fieldName := c.Args[0].(*ast.SelectorExpr).Sel.Name
-										testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
-
-										for _, el := range testData.(*ast.CompositeLit).Elts {
-											lit := el.(*ast.CompositeLit)
-											for _, structField := range lit.Elts {
-												switch t := structField.(type) {
-												case *ast.BasicLit:
-													// this struct isn't keyed so we have to look up parent struct and compare the field name
-													subtests = append(subtests, strings.ReplaceAll(t.Value, "\"", ""))
-													break
-												case *ast.KeyValueExpr:
-													if t.Key.(*ast.Ident).Name == fieldName {
-														testName := t.Value.(*ast.BasicLit).Value
-														subtests = append(subtests, strings.ReplaceAll(testName, "\"", ""))
-														break
-													}
-												case *ast.FuncLit:
-												// if the subtest is a function literal, we can't get the name from the AST
-												case *ast.CompositeLit:
-												default:
-													panic(fmt.Sprintf("Unknown type %T @ %d", t, structField.Pos()))
-												}
-											}
-										}
-
-										// all subtests have been added
-										break testFunc
-									}
-								}
-							}
-						}
-					}
-				}
-
-				// add in subtests if they exist
-				for _, subtest := range subtests {
-					tests = append(tests, Test{
-						File: path,
-						Name: x.Name.Name + "/" + subtest,
-					})
-				}
 			}
 		}
 
@@ -170,4 +62,77 @@ func findTests(path string) []Test {
 	})
 
 	return tests
+}
+
+func astToTests(parentTestName string, item ast.Node) []string {
+	var subtests []string
+	switch stmt := item.(type) {
+	case *ast.ExprStmt:
+		switch c := stmt.X.(type) {
+		case *ast.CallExpr:
+			// check if the call is to t.Run
+			// if it is, add the subtest to the list of tests
+			// if it isn't, continue
+			f, ok := c.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return nil
+			}
+
+			if f.Sel.Name != "Run" {
+				return nil
+			}
+
+			// set args to the first argument of the t.Run call (the subtest name)
+			// if the argument is a basic literal, IE a string add it to the list of subtests else look up the field name
+			var testName string
+			if v, ok := c.Args[0].(*ast.BasicLit); ok {
+				testName = parentTestName + "/" + strings.ReplaceAll(v.Value, "\"", "")
+			} else {
+				// if the argument is a composite literal, we have to look up the field name
+				fieldName := c.Args[0].(*ast.SelectorExpr).Sel.Name
+				testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
+
+				for _, el := range testData.(*ast.CompositeLit).Elts {
+					lit := el.(*ast.CompositeLit)
+					for _, structField := range lit.Elts {
+						switch t := structField.(type) {
+						case *ast.BasicLit:
+							// this struct isn't keyed so we have to look up parent struct and compare the field name
+							testName = parentTestName + "/" + strings.ReplaceAll(t.Value, "\"", "")
+							break
+						case *ast.KeyValueExpr:
+							if t.Key.(*ast.Ident).Name == fieldName {
+								testName = parentTestName + "/" + strings.ReplaceAll(t.Value.(*ast.BasicLit).Value, "\"", "")
+								break
+							}
+						case *ast.FuncLit:
+						// if the subtest is a function literal, we can't get the name from the AST
+						case *ast.CompositeLit:
+						default:
+							panic(fmt.Sprintf("Unknown type %T @ %d", t, structField.Pos()))
+						}
+					}
+				}
+			}
+
+			// create entry for this test before checking for subtests within closure
+			subtests = append(subtests, testName)
+
+			// check right hand side of assignment for function body
+			if f, ok := c.Args[1].(*ast.FuncLit); ok {
+				for _, fItem := range f.Body.List {
+					subtests = append(subtests, astToTests(testName, fItem)...)
+				}
+			}
+		}
+
+	// found range statement, check for t.Run calls in the body for subtests
+	case *ast.RangeStmt:
+		// check body for call to t.Run
+		for _, forItem := range stmt.Body.List {
+			subtests = append(subtests, astToTests(parentTestName, forItem)...)
+		}
+	}
+
+	return subtests
 }

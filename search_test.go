@@ -16,6 +16,7 @@ func Test_findTests(t *testing.T) {
 			tests: []Test{
 				{Name: "Test_Nested", File: "testdata/nested_t_run_string.go"},
 				{Name: "Test_Nested/L1", File: "testdata/nested_t_run_string.go"},
+				{Name: "Test_Nested/L1/L2", File: "testdata/nested_t_run_string.go"},
 			},
 		},
 	}
