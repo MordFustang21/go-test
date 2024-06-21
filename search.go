@@ -23,7 +23,9 @@ func findTests(path string) []Test {
 		// in the event of a panic catch it and print debug information
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("Error in file %s : %s\n%s", path, r, dbg.Stack())
+				if *debug {
+					fmt.Printf("Error in file %s : %s\n%s", path, r, dbg.Stack())
+				}
 			}
 		}()
 
