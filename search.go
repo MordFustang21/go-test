@@ -67,6 +67,15 @@ func findTests(path string) []Test {
 }
 
 func astToTests(parentTestName string, item ast.Node) []string {
+	defer func() {
+		// don't fail out the whole ast due to one bad test
+		if r := recover(); r != nil {
+			if *debug {
+				fmt.Println("Error in astToTests", parentTestName, r)
+			}
+		}
+	}()
+
 	var subtests []string
 	switch stmt := item.(type) {
 	case *ast.ExprStmt:

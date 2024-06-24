@@ -143,7 +143,7 @@ func selectTest(availableTests []Test) Test {
 		Items: availableTests,
 		Templates: &promptui.SelectTemplates{
 			Label:    "{{ .File }}",
-			Active:   "\U0001F449 {{ .Name }}",
+			Active:   "> {{ .Name }}",
 			Inactive: "  {{ .Name }}",
 			Selected: "{{ .Name }}",
 		},
