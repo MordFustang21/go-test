@@ -98,36 +98,17 @@ func astToTests(parentTestName string, item ast.Node) []string {
 			var testName string
 			if v, ok := c.Args[0].(*ast.BasicLit); ok {
 				testName = parentTestName + "/" + strings.ReplaceAll(v.Value, "\"", "")
+				// create entry for this test before checking for subtests within closure
+				subtests = append(subtests, testName)
 			} else {
+				// this is a table test we need to find all table entries
 				// if the argument is a composite literal, we have to look up the field name
 				fieldName := c.Args[0].(*ast.SelectorExpr).Sel.Name
-				testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
-
-				for _, el := range testData.(*ast.CompositeLit).Elts {
-					lit := el.(*ast.CompositeLit)
-					for _, structField := range lit.Elts {
-						switch t := structField.(type) {
-						case *ast.BasicLit:
-							// this struct isn't keyed so we have to look up parent struct and compare the field name
-							testName = parentTestName + "/" + strings.ReplaceAll(t.Value, "\"", "")
-							break
-						case *ast.KeyValueExpr:
-							if t.Key.(*ast.Ident).Name == fieldName {
-								testName = parentTestName + "/" + strings.ReplaceAll(t.Value.(*ast.BasicLit).Value, "\"", "")
-								break
-							}
-						case *ast.FuncLit:
-						// if the subtest is a function literal, we can't get the name from the AST
-						case *ast.CompositeLit:
-						default:
-							panic(fmt.Sprintf("Unknown type %T @ %d", t, structField.Pos()))
-						}
-					}
+				tableTests := findTestNameInTable(c.Args[0].(*ast.SelectorExpr), fieldName)
+				for _, tableTest := range tableTests {
+					subtests = append(subtests, parentTestName+"/"+tableTest)
 				}
 			}
-
-			// create entry for this test before checking for subtests within closure
-			subtests = append(subtests, testName)
 
 			// check right hand side of assignment for function body
 			if f, ok := c.Args[1].(*ast.FuncLit); ok {
@@ -142,6 +123,34 @@ func astToTests(parentTestName string, item ast.Node) []string {
 		// check body for call to t.Run
 		for _, forItem := range stmt.Body.List {
 			subtests = append(subtests, astToTests(parentTestName, forItem)...)
+		}
+	}
+
+	return subtests
+}
+
+func findTestNameInTable(stmt *ast.SelectorExpr, fieldName string) []string {
+	var subtests []string
+
+	testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
+	testData = testData.(*ast.UnaryExpr).X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
+	for _, el := range testData.(*ast.CompositeLit).Elts {
+		lit := el.(*ast.CompositeLit)
+		for _, structField := range lit.Elts {
+			switch t := structField.(type) {
+			case *ast.BasicLit:
+				// this struct isn't keyed so we have to look up parent struct and compare the field name
+				subtests = append(subtests, strings.ReplaceAll(t.Value, "\"", ""))
+			case *ast.KeyValueExpr:
+				if t.Key.(*ast.Ident).Name == fieldName {
+					subtests = append(subtests, strings.ReplaceAll(t.Value.(*ast.BasicLit).Value, "\"", ""))
+				}
+			case *ast.FuncLit:
+			// if the subtest is a function literal, we can't get the name from the AST
+			case *ast.CompositeLit:
+			default:
+				panic(fmt.Sprintf("Unknown type %T @ %d", t, structField.Pos()))
+			}
 		}
 	}
 
