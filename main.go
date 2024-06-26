@@ -4,10 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -17,6 +15,7 @@ var (
 	// Flags for the program
 	subtest        = flag.Bool("s", false, "Run a specific subtest")
 	debug          = flag.Bool("debug", false, "Enable debug mode")
+	quiet          = flag.Bool("q", false, "Disables verbose output on go test")
 	runFromHistory = flag.Bool("his", false, "Run a specific command from the history")
 	rerun          = flag.Bool("r", false, "Re-run the last test")
 
@@ -102,41 +101,6 @@ func run() error {
 	return nil
 }
 
-func getTestsFromDir(dir string, benchmarks bool) ([]Test, error) {
-	availableTests := []Test{}
-
-	err := filepath.WalkDir(dir, func(path string, info fs.DirEntry, err error) error {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		// if the file isn't a _test.go file, skip it
-		if !strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-
-		// load in AST of the file and find test functions
-		if benchmarks {
-			testFuncs := findBenchmarks(path)
-			availableTests = append(availableTests, testFuncs...)
-		} else {
-			testFuncs := findTests(path)
-			availableTests = append(availableTests, testFuncs...)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error walking the path %s: %w", dir, err)
-	}
-
-	return availableTests, nil
-}
-
 func selectTest(availableTests []Test) Test {
 	subtestPrompt := promptui.Select{
 		Label: "Select a subtest",
@@ -174,7 +138,7 @@ func selectTest(availableTests []Test) Test {
 func executeTests(t Test) (exec.Cmd, bool) {
 	path, modRoot := testToPathAndRoot(t)
 
-	args := []string{"test", "-v", path}
+	args := []string{"test", quietMode(), path}
 	if t.Name != "" {
 		args = append(args, "-run", t.Name)
 	}
@@ -282,9 +246,11 @@ func executeTests(t Test) (exec.Cmd, bool) {
 	return cmd, pass
 }
 
-// Test represents a test case and the file it is in.
-type Test struct {
-	File        string
-	Name        string
-	IsBenchmark bool
+// quietMode will return a string that can be used to suppress output.
+func quietMode() string {
+	if *quiet {
+		return ""
+	}
+
+	return "-v"
 }

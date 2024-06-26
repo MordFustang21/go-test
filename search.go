@@ -1,13 +1,58 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
+	"path/filepath"
 	dbg "runtime/debug"
 	"strings"
 )
+
+// Test represents a test case and the file it is in.
+type Test struct {
+	File        string
+	Name        string
+	IsBenchmark bool
+}
+
+func getTestsFromDir(dir string, benchmarks bool) ([]Test, error) {
+	availableTests := []Test{}
+
+	err := filepath.WalkDir(dir, func(path string, info fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		// if the file isn't a _test.go file, skip it
+		if !strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+
+		// load in AST of the file and find test functions
+		if benchmarks {
+			testFuncs := findBenchmarks(path)
+			availableTests = append(availableTests, testFuncs...)
+		} else {
+			testFuncs := findTests(path)
+			availableTests = append(availableTests, testFuncs...)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error walking the path %s: %w", dir, err)
+	}
+
+	return availableTests, nil
+}
 
 // findTests loads the AST of a file and returns all test functions in the file.
 func findTests(path string) []Test {
@@ -134,16 +179,17 @@ func findTestNameInTable(stmt *ast.SelectorExpr, fieldName string) []string {
 
 	testData := stmt.X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
 	testData = testData.(*ast.UnaryExpr).X.(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0]
+
 	for _, el := range testData.(*ast.CompositeLit).Elts {
 		lit := el.(*ast.CompositeLit)
 		for _, structField := range lit.Elts {
 			switch t := structField.(type) {
 			case *ast.BasicLit:
 				// this struct isn't keyed so we have to look up parent struct and compare the field name
-				subtests = append(subtests, strings.ReplaceAll(t.Value, "\"", ""))
+				subtests = append(subtests, strings.Trim(t.Value, `"`))
 			case *ast.KeyValueExpr:
 				if t.Key.(*ast.Ident).Name == fieldName {
-					subtests = append(subtests, strings.ReplaceAll(t.Value.(*ast.BasicLit).Value, "\"", ""))
+					subtests = append(subtests, strings.Trim(t.Value.(*ast.BasicLit).Value, `"`))
 				}
 			case *ast.FuncLit:
 			// if the subtest is a function literal, we can't get the name from the AST
