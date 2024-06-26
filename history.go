@@ -185,8 +185,17 @@ func getLastCommand() (HistoryEntry, error) {
 	file := getHistoryFile(historyFile)
 	defer file.Close()
 
+	// lookup the current module root based on working directory so that
+	// we only run the last test in the current module and not the last global test.
+	wd, err := os.Getwd()
+	if err != nil {
+		return HistoryEntry{}, fmt.Errorf("error getting working directory %w", err)
+	}
+
+	modRoot := lookupModuleRoot(wd)
+
 	var lastCommand HistoryEntry
-	err := file.View(func(tx *bolt.Tx) error {
+	err = file.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("history"))
 		if b == nil {
 			return nil
@@ -195,6 +204,11 @@ func getLastCommand() (HistoryEntry, error) {
 		b.ForEach(func(k, v []byte) error {
 			var he HistoryEntry
 			he.Load(v)
+
+			// only consider the last command in the current module
+			if he.Dir != modRoot {
+				return nil
+			}
 
 			if lastCommand.Timestamp.Before(he.Timestamp) {
 				lastCommand = he
@@ -207,6 +221,10 @@ func getLastCommand() (HistoryEntry, error) {
 	})
 	if err != nil {
 		return HistoryEntry{}, fmt.Errorf("error viewing history file %w", err)
+	}
+
+	if lastCommand.Path == "" {
+		return HistoryEntry{}, errors.New("no runs found for the current module")
 	}
 
 	return lastCommand, nil
