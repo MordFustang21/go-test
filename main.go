@@ -170,7 +170,7 @@ func executeTests(t Test) (exec.Cmd, bool) {
 	}
 
 	var memoryProfile string
-	if *withCPUProfile {
+	if *withMemoryProfile {
 		tempFile, err := os.CreateTemp("", "go-test_"+t.Name)
 		if err != nil {
 			panic(err)
