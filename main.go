@@ -15,6 +15,7 @@ var (
 	// Flags for the program
 	subtest        = flag.Bool("s", false, "Run a specific subtest")
 	verbose        = flag.Bool("verbose", false, "Print verbose output")
+	debug          = flag.Bool("d", false, "Run test in debug mode with delve")
 	quiet          = flag.Bool("q", false, "Disables verbose output on go test")
 	runFromHistory = flag.Bool("his", false, "Run a specific command from the history")
 	rerun          = flag.Bool("r", false, "Re-run the last test")
@@ -135,12 +136,37 @@ func selectTest(availableTests []Test) Test {
 	return Test{}
 }
 
+// executeTests will run the test and return the command and if it passed.
 func executeTests(t Test) (exec.Cmd, bool) {
 	path, modRoot := testToPathAndRoot(t)
 
 	args := []string{"test", quietMode(), path}
 	if t.Name != "" {
 		args = append(args, "-run", t.Name)
+	}
+
+	if *debug {
+		p, err := exec.LookPath("dlv")
+		if err != nil {
+			panic(err)
+		}
+
+		cmd := exec.Cmd{
+			Path:   p,
+			Env:    os.Environ(),
+			Args:   []string{"dlv", "test", "--", t.Name},
+			Dir:    modRoot,
+			Stdin:  os.Stdin,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		}
+
+		err = cmd.Run()
+		if err != nil {
+			panic(err)
+		}
+		
+		return cmd, true
 	}
 
 	var coverFile string
