@@ -31,7 +31,7 @@ func Test_findTests(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
-			debug = boolPtr(true)
+			verbose = boolPtr(true)
 			
 			found := findTests(tt.file)
 			// verify tests are found

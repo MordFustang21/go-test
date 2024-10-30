@@ -14,7 +14,7 @@ import (
 var (
 	// Flags for the program
 	subtest        = flag.Bool("s", false, "Run a specific subtest")
-	debug          = flag.Bool("debug", false, "Enable debug mode")
+	verbose        = flag.Bool("verbose", false, "Print verbose output")
 	quiet          = flag.Bool("q", false, "Disables verbose output on go test")
 	runFromHistory = flag.Bool("his", false, "Run a specific command from the history")
 	rerun          = flag.Bool("r", false, "Re-run the last test")
