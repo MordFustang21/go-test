@@ -68,7 +68,7 @@ func findTests(path string) []Test {
 		// in the event of a panic catch it and print debug information
 		defer func() {
 			if r := recover(); r != nil {
-				if *debug {
+				if *verbose {
 					fmt.Printf("Error in file %s : %s\n%s", path, r, dbg.Stack())
 				}
 			}
@@ -76,7 +76,7 @@ func findTests(path string) []Test {
 
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			if *debug {
+			if *verbose {
 				fmt.Println("Evalutating", x.Name.Name)
 			}
 
@@ -115,7 +115,7 @@ func astToTests(parentTestName string, item ast.Node) []string {
 	defer func() {
 		// don't fail out the whole ast due to one bad test
 		if r := recover(); r != nil {
-			if *debug {
+			if *verbose {
 				fmt.Println("Error in astToTests", parentTestName, r)
 			}
 		}

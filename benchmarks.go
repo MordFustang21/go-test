@@ -140,7 +140,7 @@ func findBenchmarks(path string) []Test {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			if *debug {
+			if *verbose {
 				fmt.Println("Evalutating", x.Name.Name)
 			}
 
