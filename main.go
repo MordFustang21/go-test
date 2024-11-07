@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -151,10 +153,20 @@ func executeTests(t Test) (exec.Cmd, bool) {
 			panic(err)
 		}
 
+		// Create a temp file to set breakpoints and tell dlv to continue.
+		tempFile, err := os.CreateTemp("", "go-test_"+t.Name)
+		if err != nil {
+			panic(err)
+		}
+
+		tempFile.Write([]byte("b " + fmt.Sprintf("%s:%d", packageFromPathAndMod(t.FilePath, modRoot), t.LineNumber) + "\n"))
+		tempFile.Write([]byte("c\n"))
+		tempFile.Close()
+
 		cmd := exec.Cmd{
 			Path:   p,
 			Env:    os.Environ(),
-			Args:   []string{"dlv", "test", "--", t.Name},
+			Args:   []string{"dlv", "test", "--init", tempFile.Name(), resolvePackage(path, modRoot), "--", "-test.run", t.Name},
 			Dir:    modRoot,
 			Stdin:  os.Stdin,
 			Stdout: os.Stdout,
@@ -165,7 +177,7 @@ func executeTests(t Test) (exec.Cmd, bool) {
 		if err != nil {
 			panic(err)
 		}
-		
+
 		return cmd, true
 	}
 
@@ -279,4 +291,36 @@ func quietMode() string {
 	}
 
 	return "-v"
+}
+
+func resolvePackage(path, modRoot string) string {
+	cmd := exec.Command("go", "list", "-f", "{{.ImportPath}}", path)
+	cmd.Dir = modRoot
+	cmd.Stderr = os.Stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(bytes.TrimSpace(out))
+}
+
+func packageFromPathAndMod(path, modRoot string) string {
+	out, err := filepath.Rel(modRoot, path)
+	if err != nil {
+		return ""
+	}
+
+	return out
+}
+
+// getBaseFunc returns the Test_name function that will be used to run the test.
+func getBaseFunc(name string) string {
+	parts := strings.Split(name, "/")
+	if len(parts) == 1 {
+		return name
+	}
+
+	return parts[0]
 }

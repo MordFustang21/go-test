@@ -17,6 +17,8 @@ type Test struct {
 	File        string
 	Name        string
 	IsBenchmark bool
+	FilePath    string
+	LineNumber  int
 }
 
 func getTestsFromDir(dir string, benchmarks bool) ([]Test, error) {
@@ -87,8 +89,10 @@ func findTests(path string) []Test {
 
 			// create root test entry
 			tests = append(tests, Test{
-				File: path,
-				Name: x.Name.Name,
+				File:       path,
+				Name:       x.Name.Name,
+				FilePath:   path,
+				LineNumber: fset.Position(x.Pos()).Line,
 			})
 
 			var subtests []string
@@ -99,8 +103,10 @@ func findTests(path string) []Test {
 			// convert subtests into Test entries
 			for _, subtest := range subtests {
 				tests = append(tests, Test{
-					File: path,
-					Name: subtest,
+					File:       path,
+					Name:       subtest,
+					FilePath:   path,
+					LineNumber: fset.Position(x.Pos()).Line,
 				})
 			}
 		}

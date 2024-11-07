@@ -14,17 +14,17 @@ func Test_findTests(t *testing.T) {
 		{
 			file: "testdata/nested_t_run_string.go",
 			tests: []Test{
-				{Name: "Test_Nested", File: "testdata/nested_t_run_string.go"},
-				{Name: "Test_Nested/L1", File: "testdata/nested_t_run_string.go"},
-				{Name: "Test_Nested/L1/L2", File: "testdata/nested_t_run_string.go"},
+				{Name: "Test_Nested", File: "testdata/nested_t_run_string.go", FilePath: "testdata/nested_t_run_string.go", LineNumber: 7},
+				{Name: "Test_Nested/L1", File: "testdata/nested_t_run_string.go", FilePath: "testdata/nested_t_run_string.go", LineNumber: 7},
+				{Name: "Test_Nested/L1/L2", File: "testdata/nested_t_run_string.go", FilePath: "testdata/nested_t_run_string.go", LineNumber: 7},
 			},
 		},
 		{
-			file:  "testdata/t_run_for_loop.go",
+			file: "testdata/t_run_for_loop.go",
 			tests: []Test{
-				{Name: "Test_ForLoop", File: "testdata/t_run_for_loop.go"},
-				{Name: "Test_ForLoop/test1", File: "testdata/t_run_for_loop.go"},
-				{Name: "Test_ForLoop/test2", File: "testdata/t_run_for_loop.go"},
+				{Name: "Test_ForLoop", File: "testdata/t_run_for_loop.go", FilePath: "testdata/t_run_for_loop.go", LineNumber: 5},
+				{Name: "Test_ForLoop/test1", File: "testdata/t_run_for_loop.go", FilePath: "testdata/t_run_for_loop.go", LineNumber: 5},
+				{Name: "Test_ForLoop/test2", File: "testdata/t_run_for_loop.go", FilePath: "testdata/t_run_for_loop.go", LineNumber: 5},
 			},
 		},
 	}
@@ -32,7 +32,7 @@ func Test_findTests(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
 			verbose = boolPtr(true)
-			
+
 			found := findTests(tt.file)
 			// verify tests are found
 			assert.Equal(t, tt.tests, found)
