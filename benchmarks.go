@@ -110,24 +110,6 @@ func storeBenchmarkResult(cmd exec.Cmd, benchBuffer *bytes.Buffer) {
 	})
 }
 
-func storeCPUProfile(t Test, profile string) {
-	// store the profile in bbolt
-	db := getHistoryFile(benchmarkDB)
-	profileContents, err := os.ReadFile(profile)
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("cpuProfile"))
-		bucket.Put([]byte("todo-key"), profileContents)
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-}
-
 func findBenchmarks(path string) []Test {
 	var tests []Test
 
