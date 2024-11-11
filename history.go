@@ -106,7 +106,10 @@ func logRunHistory(command exec.Cmd, pass bool) {
 		// key is a hash of the path, args, and dir.
 		key := he.Hash()
 
-		b.Put([]byte(key), he.JSON())
+		err = b.Put([]byte(key), he.JSON())
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
@@ -160,11 +163,8 @@ func selectHistory() (HistoryEntry, error) {
 		},
 		Searcher: func(input string, index int) bool {
 			test := entries[index]
-			if strings.Contains(strings.ToLower(test.String()), strings.ToLower(input)) {
-				return true
-			}
 
-			return false
+			return strings.Contains(strings.ToLower(test.String()), strings.ToLower(input))
 		},
 	}
 
@@ -201,7 +201,7 @@ func getLastCommand() (HistoryEntry, error) {
 			return nil
 		}
 
-		b.ForEach(func(k, v []byte) error {
+		err = b.ForEach(func(k, v []byte) error {
 			var he HistoryEntry
 			he.Load(v)
 
@@ -216,6 +216,9 @@ func getLastCommand() (HistoryEntry, error) {
 
 			return nil
 		})
+		if err != nil {
+			return fmt.Errorf("error iterating over history %w", err)
+		}
 
 		return nil
 	})

@@ -116,11 +116,7 @@ func selectTest(availableTests []Test) Test {
 		},
 		Searcher: func(input string, index int) bool {
 			test := availableTests[index]
-			if strings.Contains(strings.ToLower(test.Name), strings.ToLower(input)) {
-				return true
-			}
-
-			return false
+			return strings.Contains(strings.ToLower(test.Name), strings.ToLower(input))
 		},
 	}
 
@@ -271,14 +267,20 @@ func executeTests(t Test) (exec.Cmd, bool) {
 		// show top methods
 		cmd := exec.Command("go", "tool", "pprof", "-top", cpuProfile)
 		cmd.Stdout = os.Stdout
-		cmd.Run()
+		err = cmd.Run()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if *withMemoryProfile {
 		fmt.Println("Wrote Memory Profile to:", memoryProfile)
 		cmd := exec.Command("go", "tool", "pprof", "-top", memoryProfile)
 		cmd.Stdout = os.Stdout
-		cmd.Run()
+		err = cmd.Run()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return cmd, pass
@@ -313,14 +315,4 @@ func packageFromPathAndMod(path, modRoot string) string {
 	}
 
 	return out
-}
-
-// getBaseFunc returns the Test_name function that will be used to run the test.
-func getBaseFunc(name string) string {
-	parts := strings.Split(name, "/")
-	if len(parts) == 1 {
-		return name
-	}
-
-	return parts[0]
 }
