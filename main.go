@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,14 +17,12 @@ import (
 
 var (
 	// Flags for the program
-	subtest        = flag.Bool("s", false, "Run a specific subtest")
-	verbose        = flag.Bool("verbose", false, "Print verbose output")
-	debug          = flag.Bool("d", false, "Run test in debug mode with delve")
-	quiet          = flag.Bool("q", false, "Disables verbose output on go test")
-	runFromHistory = flag.Bool("his", false, "Run a specific command from the history")
-	rerun          = flag.Bool("r", false, "Re-run the last test")
-
-	// extra test features
+	subtest           = flag.Bool("s", false, "Run a specific subtest")
+	verbose           = flag.Bool("verbose", false, "Print verbose output")
+	debug             = flag.Bool("d", false, "Run test in debug mode with delve")
+	quiet             = flag.Bool("q", false, "Disables verbose output on go test")
+	runFromHistory    = flag.Bool("his", false, "Run a specific command from the history")
+	rerun             = flag.Bool("r", false, "Re-run the last test")
 	benchmark         = flag.Bool("b", false, "Run a specific benchmark.")
 	withCoverage      = flag.Bool("cover", false, "Run the test with coverage and auto launch the viewer")
 	withCPUProfile    = flag.Bool("cpu", false, "Run the test with a CPU profile")
@@ -31,7 +31,12 @@ var (
 
 func main() {
 	flag.Parse()
-	err := run()
+	err := loadConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	err = run()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -45,38 +50,6 @@ func run() error {
 	}
 
 	switch {
-	case *benchmark:
-		// get benchmarks
-		benchmarks, err := getTestsFromDir(readDir, true)
-		if err != nil {
-			return fmt.Errorf("error getting benchmarks: %w", err)
-		}
-
-		if len(benchmarks) == 0 {
-			fmt.Println("No benchmarks found in the directory")
-			return nil
-		}
-
-		selected := selectTest(benchmarks)
-		runBenchmark(selected)
-
-	case *runFromHistory:
-		// todo: show history and select an option
-		he, err := selectHistory()
-		if err != nil {
-			return fmt.Errorf("error selecting history: %w", err)
-		}
-
-		runHistoryEntry(he)
-
-	case *rerun:
-		he, err := getLastCommand()
-		if err != nil {
-			return fmt.Errorf("error getting last command: %w", err)
-		}
-
-		runHistoryEntry(he)
-
 	case *subtest:
 		availableTests, err := getTestsFromDir(readDir, false)
 		if err != nil {
@@ -94,6 +67,37 @@ func run() error {
 		// execute the test
 		cmd, pass := executeTests(testToRun)
 		logRunHistory(cmd, pass)
+
+	case *rerun:
+		he, err := getLastCommand()
+		if err != nil {
+			return fmt.Errorf("error getting last command: %w", err)
+		}
+
+		runHistoryEntry(he)
+
+	case *benchmark:
+		benchmarks, err := getTestsFromDir(readDir, true)
+		if err != nil {
+			return fmt.Errorf("error getting benchmarks: %w", err)
+		}
+
+		if len(benchmarks) == 0 {
+			fmt.Println("No benchmarks found in the directory")
+			return nil
+		}
+
+		selected := selectTest(benchmarks)
+		runBenchmark(selected)
+
+	case *runFromHistory:
+		he, err := selectHistory()
+		if err != nil {
+			return fmt.Errorf("error selecting history: %w", err)
+		}
+
+		runHistoryEntry(he)
+
 	default:
 		// run a test for the directory
 		cmd, pass := executeTests(Test{File: readDir})
@@ -221,12 +225,19 @@ func executeTests(t Test) (exec.Cmd, bool) {
 		panic(err)
 	}
 
+	var outputWriter io.Writer = os.Stdout
+	if config.ColorizeOutput {
+		var colorReader io.Reader
+		colorReader, outputWriter = io.Pipe()
+		go colorizeOutput(colorReader)
+	}
+
 	cmd := exec.Cmd{
 		Path:   p,
 		Env:    os.Environ(),
 		Args:   append([]string{"go"}, args...),
 		Dir:    modRoot,
-		Stdout: os.Stdout,
+		Stdout: outputWriter,
 		Stderr: os.Stderr,
 	}
 
@@ -234,12 +245,11 @@ func executeTests(t Test) (exec.Cmd, bool) {
 
 	var pass bool
 	err = cmd.Run()
-	var exit *exec.ExitError
 	switch {
 	case err == nil:
 		pass = true
 	// do nothing
-	case errors.As(err, &exit):
+	case errors.Is(err, &exec.ExitError{}):
 	// do nothing
 	default:
 		panic(err)
@@ -284,6 +294,26 @@ func executeTests(t Test) (exec.Cmd, bool) {
 	}
 
 	return cmd, pass
+}
+
+func colorizeOutput(in io.Reader) {
+	rdr := bufio.NewReader(in)
+	for {
+		line, err := rdr.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+
+		switch {
+		case strings.Contains(line, "FAIL"):
+			fmt.Print("\033[31m")
+		case strings.Contains(line, "PASS"):
+			fmt.Print("\033[32m")
+		}
+
+		fmt.Print(line)
+		fmt.Print("\033[0m")
+	}
 }
 
 // quietMode will return a string that can be used to suppress output.
