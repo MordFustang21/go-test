@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -234,11 +235,18 @@ func getLastCommand() (HistoryEntry, error) {
 }
 
 func runHistoryEntry(he HistoryEntry) {
+	var outputWriter io.Writer = os.Stdout
+	if config.ColorizeOutput {
+		var colorReader io.Reader
+		colorReader, outputWriter = io.Pipe()
+		go colorizeOutput(colorReader)
+	}
+
 	cmd := exec.Cmd{
 		Path:   he.Path,
 		Args:   he.Args,
 		Dir:    he.Dir,
-		Stdout: os.Stdout,
+		Stdout: outputWriter,
 		Stderr: os.Stderr,
 	}
 
