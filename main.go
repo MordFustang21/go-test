@@ -148,37 +148,7 @@ func executeTests(t Test) (exec.Cmd, bool) {
 	}
 
 	if *debug {
-		p, err := exec.LookPath("dlv")
-		if err != nil {
-			panic(err)
-		}
-
-		// Create a temp file to set breakpoints and tell dlv to continue.
-		tempFile, err := os.CreateTemp("", "go-test_"+t.Name)
-		if err != nil {
-			panic(err)
-		}
-
-		tempFile.Write([]byte("b " + fmt.Sprintf("%s:%d", packageFromPathAndMod(t.FilePath, modRoot), t.LineNumber) + "\n"))
-		tempFile.Write([]byte("c\n"))
-		tempFile.Close()
-
-		cmd := exec.Cmd{
-			Path:   p,
-			Env:    os.Environ(),
-			Args:   []string{"dlv", "test", "--init", tempFile.Name(), resolvePackage(path, modRoot), "--", "-test.run", t.Name},
-			Dir:    modRoot,
-			Stdin:  os.Stdin,
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
-		}
-
-		err = cmd.Run()
-		if err != nil {
-			panic(err)
-		}
-
-		return cmd, true
+		return debugTest(t, path, modRoot)
 	}
 
 	var coverFile string
@@ -248,9 +218,8 @@ func executeTests(t Test) (exec.Cmd, bool) {
 	switch {
 	case err == nil:
 		pass = true
-	// do nothing
 	case errors.Is(err, &exec.ExitError{}):
-	// do nothing
+		// do nothing
 	default:
 		panic(err)
 	}

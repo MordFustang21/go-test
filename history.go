@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,7 +64,7 @@ func (h *HistoryEntry) Load(data []byte) {
 // Hash returns a hash of the HistoryEntry.
 func (h HistoryEntry) Hash() string {
 	hash := md5.Sum([]byte(fmt.Sprintf("%s-%s-%s", h.Path, strings.Join(h.Args, " "), h.Dir)))
-	key := fmt.Sprintf("%x", hash)
+	key := hex.EncodeToString(hash[:])
 
 	return key
 }
