@@ -16,21 +16,23 @@ import (
 )
 
 var (
+	flagSet = flag.NewFlagSet("", flag.ContinueOnError)
 	// Flags for the program
-	subtest           = flag.Bool("s", false, "Run a specific subtest")
-	verbose           = flag.Bool("verbose", false, "Print verbose output")
-	debug             = flag.Bool("d", false, "Run test in debug mode with delve")
-	quiet             = flag.Bool("q", false, "Disables verbose output on go test")
-	runFromHistory    = flag.Bool("his", false, "Run a specific command from the history")
-	rerun             = flag.Bool("r", false, "Re-run the last test")
-	benchmark         = flag.Bool("b", false, "Run a specific benchmark.")
-	withCoverage      = flag.Bool("cover", false, "Run the test with coverage and auto launch the viewer")
-	withCPUProfile    = flag.Bool("cpu", false, "Run the test with a CPU profile")
-	withMemoryProfile = flag.Bool("mem", false, "Run the test with a memory profile")
+	subtest           = flagSet.Bool("s", false, "Run a specific subtest")
+	verbose           = flagSet.Bool("verbose", false, "Print verbose output")
+	debug             = flagSet.Bool("d", false, "Run test in debug mode with delve")
+	quiet             = flagSet.Bool("q", false, "Disables verbose output on go test")
+	runFromHistory    = flagSet.Bool("his", false, "Run a specific command from the history")
+	rerun             = flagSet.Bool("r", false, "Re-run the last test")
+	benchmark         = flagSet.Bool("b", false, "Run a specific benchmark.")
+	withCoverage      = flagSet.Bool("cover", false, "Run the test with coverage and auto launch the viewer")
+	withCPUProfile    = flagSet.Bool("cpu", false, "Run the test with a CPU profile")
+	withMemoryProfile = flagSet.Bool("mem", false, "Run the test with a memory profile")
 )
 
 func main() {
-	flag.Parse()
+	flagSet.Parse(os.Args[1:])
+
 	err := loadConfig()
 	if err != nil {
 		panic(err)
@@ -215,10 +217,11 @@ func executeTests(t Test) (exec.Cmd, bool) {
 
 	var pass bool
 	err = cmd.Run()
+	var exit *exec.ExitError
 	switch {
 	case err == nil:
 		pass = true
-	case errors.Is(err, &exec.ExitError{}):
+	case errors.As(err, &exit):
 		// do nothing
 	default:
 		panic(err)
