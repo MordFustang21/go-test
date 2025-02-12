@@ -18,13 +18,13 @@ func debugTest(t Test, path, modRoot string) (exec.Cmd, bool) {
 		panic(err)
 	}
 
-  // Attempt cleanup when no longer in use.
-  defer func ()  {
-    err = os.Remove(tempFile.Name())
-    if err != nil {
-      panic(err)
-    }
-  }()
+	// Attempt cleanup when no longer in use.
+	defer func() {
+		err = os.Remove(tempFile.Name())
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	tempFile.Write([]byte("b " + fmt.Sprintf("%s:%d", packageFromPathAndMod(t.FilePath, modRoot), t.LineNumber) + "\n"))
 	tempFile.Write([]byte("c\n"))
@@ -33,7 +33,7 @@ func debugTest(t Test, path, modRoot string) (exec.Cmd, bool) {
 	cmd := exec.Cmd{
 		Path:   p,
 		Env:    os.Environ(),
-		Args:   []string{"dlv", "test", "--init", tempFile.Name(), resolvePackage(path, modRoot), "--", "-test.run", t.Name},
+		Args:   []string{"dlv", "test", "--init", tempFile.Name(), resolvePackage(modRoot, path), "--", "-test.run", t.Name},
 		Dir:    modRoot,
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,

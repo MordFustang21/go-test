@@ -57,14 +57,14 @@ func runBenchmark(t Test) {
 
 	// create a buffer to capture the output of the benchmark
 	benchBuffer := &bytes.Buffer{}
-	io.MultiWriter(os.Stdout, benchBuffer)
+	writer := io.MultiWriter(os.Stdout, benchBuffer)
 
 	cmd := exec.Cmd{
 		Path:   p,
 		Env:    os.Environ(),
 		Args:   append([]string{"go"}, args...),
 		Dir:    modRoot,
-		Stdout: benchBuffer,
+		Stdout: writer,
 		Stderr: os.Stderr,
 	}
 
@@ -78,9 +78,6 @@ func runBenchmark(t Test) {
 	case errors.Is(err, &exec.ExitError{}):
 	// do nothing
 	default:
-		panic(err)
-	}
-	if err != nil {
 		panic(err)
 	}
 
