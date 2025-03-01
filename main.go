@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	flagSet = flag.NewFlagSet("", flag.ContinueOnError)
+	flagSet = flag.NewFlagSet("gotest", flag.ExitOnError)
 	// Flags for the program
 	subtest           = flagSet.Bool("s", false, "Run a specific subtest")
 	verbose           = flagSet.Bool("verbose", false, "Print verbose output")
@@ -31,6 +31,7 @@ var (
 
 func main() {
 	flagSet.Parse(os.Args[1:])
+	
 	err := loadConfig(globalConfig, WithDefaultConfig())
 	if err != nil {
 		panic(err)
