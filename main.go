@@ -10,8 +10,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/MordFustang21/gotest/pkg/flamegraph"
 	"github.com/manifoldco/promptui"
-	"github.com/mordfustang21/gotest/pkg/flamegraph"
 )
 
 var (

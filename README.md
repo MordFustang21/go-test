@@ -7,7 +7,7 @@ execute subtests within table driven tests. You can also rerun your last test an
 ### Installation
 
 ```bash
-go install github.com/mordfustang21/go-test@latest
+go install github.com/MordFustang21/gotest@latest
 ```
 
 Notable features:

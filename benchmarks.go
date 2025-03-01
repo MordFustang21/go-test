@@ -12,7 +12,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/mordfustang21/gotest/pkg/flamegraph"
+	"github.com/MordFustang21/gotest/pkg/flamegraph"
 	bolt "go.etcd.io/bbolt"
 )
 
