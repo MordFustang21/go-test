@@ -1,17 +1,15 @@
-## go-test
+## gotest
 
-go-test is a CLI to find and execute tests in a Go project. It's a wrapper
-around `go test` with some additional features. Such as the ability to find and
-execute subtests within table driven tests. You can also rerun your last test and track your test execution history.
+Gotest is a command-line interface (CLI) tool designed to locate and run tests in a Go project. It serves as a wrapper around the `go test` command, offering extra functionalities.
+These include the capability to identify and execute subtests within table-driven tests, the option to rerun your most recent test, and the ability to maintain a history of your test executions.
 
 ### Installation
-
 ```bash
 go install github.com/MordFustang21/gotest@latest
 ```
 
 Notable features:
-- Find and execute tests in a Go project INCLUDING SUBTESTS
+- Find and execute tests in a Go project INCLUDING SUBTESTS AND TABLE-DRIVEN TESTS
+- Memory and CPU profiling WITH Flamegraph support 🔥
 - Easily test for coverage and then launch in a browser
 - Test execution history with re-run capability
-- Memory and CPU profiling WITH Flamegraph support 🔥
