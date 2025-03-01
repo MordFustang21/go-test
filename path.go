@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -46,4 +48,26 @@ func lookupModuleRoot(path string) string {
 	}
 
 	return ""
+}
+
+func resolvePackage(path, modRoot string) string {
+	cmd := exec.Command("go", "list", "-f", "{{.ImportPath}}", path)
+	cmd.Dir = modRoot
+	cmd.Stderr = os.Stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(bytes.TrimSpace(out))
+}
+
+func packageFromPathAndMod(path, modRoot string) string {
+	out, err := filepath.Rel(modRoot, path)
+	if err != nil {
+		return ""
+	}
+
+	return out
 }
