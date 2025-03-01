@@ -1,4 +1,4 @@
-module github.com/mordfustang21/gotest
+module github.com/MordFustang21/gotest
 
 go 1.21
 
