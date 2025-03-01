@@ -115,7 +115,7 @@ func ServeFlamegraph(data []byte) error {
 		cancel()
 	})
 
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp", "127.0.0.1:")
 	if err != nil {
 		return fmt.Errorf("couldn't create net listener: %w", err)
 	}
