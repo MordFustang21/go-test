@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -19,38 +21,72 @@ type Config struct {
 
 // config contains the default configuration for the program.
 // This can be overridden by a config file.
-var config = Config{
+var globalConfig = &Config{
 	ColorizeOutput: true, // Default to on for colorized output.
 }
 
-func loadConfig() error {
-	// get xdg config dir
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return err
-	}
+type configOptions struct {
+	// configData is the raw input that the config will load from.
+	configData io.Reader
+}
 
-	configPath := filepath.Join(configDir, "go-test", "config")
-	if *verbose {
-		fmt.Println("Loading config from", configPath)
-	}
+// ConfigOption is used to set custom configuration values.
+type ConfigOption func(*configOptions) error
 
-	f, err := os.Open(configPath)
-	switch {
-	case errors.Is(err, os.ErrNotExist):
+// WithConfigString sets a config via a provided string.
+func WithConfigString(c string) ConfigOption {
+	return func(co *configOptions) error {
+		co.configData = strings.NewReader(c)
+
 		return nil
-	case err != nil:
-		return err
-	default:
-		defer f.Close()
+	}
+}
+
+// WithDefaultConfig loads the users default config dir and file.
+func WithDefaultConfig() ConfigOption {
+	return func(co *configOptions) error {
+		// get xdg config dir
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			return err
+		}
+
+		configPath := filepath.Join(configDir, "go-test", "config")
+		if *verbose {
+			fmt.Println("Loading config from", configPath)
+		}
+
+		f, err := os.Open(configPath)
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			log.Println("No config file exists")
+			// TODO: create one with the default config for user to view.
+			return nil
+		case err != nil:
+			return err
+		default:
+			co.configData = f
+		}
+
+		return nil
+	}
+}
+
+func loadConfig(config *Config, cOpts ...ConfigOption) error {
+	var opts configOptions
+	for _, co := range cOpts {
+		err := co(&opts)
+		if err != nil {
+			return err
+		}
 	}
 
 	// get the reflect value of the config struct so we can set the fields
-	v := reflect.ValueOf(&config)
+	v := reflect.ValueOf(config)
 	elem := v.Elem()
 
 	// read file line by line
-	scnr := bufio.NewScanner(f)
+	scnr := bufio.NewScanner(opts.configData)
 	line := -1
 	for scnr.Scan() {
 		line++

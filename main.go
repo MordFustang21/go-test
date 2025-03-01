@@ -2,17 +2,16 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"github.com/mordfustang21/gotest/pkg/flamegraph"
 )
 
 var (
@@ -32,8 +31,7 @@ var (
 
 func main() {
 	flagSet.Parse(os.Args[1:])
-
-	err := loadConfig()
+	err := loadConfig(globalConfig, WithDefaultConfig())
 	if err != nil {
 		panic(err)
 	}
@@ -198,7 +196,7 @@ func executeTests(t Test) (exec.Cmd, bool) {
 	}
 
 	var outputWriter io.Writer = os.Stdout
-	if config.ColorizeOutput {
+	if globalConfig.ColorizeOutput {
 		var colorReader io.Reader
 		colorReader, outputWriter = io.Pipe()
 		go colorizeOutput(colorReader)
@@ -246,9 +244,25 @@ func executeTests(t Test) (exec.Cmd, bool) {
 
 	if *withCPUProfile {
 		fmt.Println("Wrote CPU Profile to:", cpuProfile)
-		// show top methods
-		cmd := exec.Command("go", "tool", "pprof", "-top", cpuProfile)
-		cmd.Stdout = os.Stdout
+		// Generate the flamegraph
+		svgData, err := flamegraph.GenerateFlamegraph(cpuProfile)
+		if err != nil {
+			panic(err)
+		}
+
+		// Write the flamegraph to a file
+		flamegraphFile, err := os.CreateTemp("", "go-test_"+t.Name+".svg")
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = flamegraphFile.Write(svgData)
+		if err != nil {
+			panic(err)
+		}
+
+		// Open the flamegraph in the browser
+		cmd := exec.Command("open", flamegraphFile.Name())
 		err = cmd.Run()
 		if err != nil {
 			panic(err)
@@ -295,26 +309,4 @@ func quietMode() string {
 	}
 
 	return "-v"
-}
-
-func resolvePackage(path, modRoot string) string {
-	cmd := exec.Command("go", "list", "-f", "{{.ImportPath}}", path)
-	cmd.Dir = modRoot
-	cmd.Stderr = os.Stderr
-
-	out, err := cmd.Output()
-	if err != nil {
-		panic(err)
-	}
-
-	return string(bytes.TrimSpace(out))
-}
-
-func packageFromPathAndMod(path, modRoot string) string {
-	out, err := filepath.Rel(modRoot, path)
-	if err != nil {
-		return ""
-	}
-
-	return out
 }

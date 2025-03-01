@@ -1,0 +1,138 @@
+PeriodType: cpu nanoseconds
+Period: 10000000
+Time: 2025-02-28 15:12:57.241413 -0700 MST
+Duration: 1.41
+Samples:
+samples/count cpu/nanoseconds
+          2   20000000: 1 2 3 4 
+          3   30000000: 5 6 7 8 9 10 11 12 12 12 12 13 14 15 16 17 
+          3   30000000: 5 6 7 8 9 10 11 12 13 14 15 16 17 
+          8   80000000: 18 19 20 21 22 11 12 12 13 14 15 16 17 
+          5   50000000: 18 19 20 21 23 24 25 26 27 28 12 12 12 13 14 15 16 17 
+          6   60000000: 5 6 7 8 9 10 11 12 12 13 14 15 16 17 
+          1   10000000: 18 19 20 21 22 11 12 13 14 15 16 17 
+         47  470000000: 18 19 20 21 22 11 12 12 12 13 14 15 16 17 
+         18  180000000: 5 6 7 8 9 10 11 12 12 12 13 14 15 16 17 
+          5   50000000: 18 19 20 21 22 11 12 12 12 12 12 13 14 15 16 17 
+          1   10000000: 29 30 31 32 33 34 35 36 37 38 37 39 37 40 41 37 42 43 38 37 39 37 40 44 37 45 46 47 26 27 28 12 12 12 13 14 15 16 17 
+          1   10000000: 18 48 49 50 51 11 13 14 15 16 17 
+          3   30000000: 18 48 49 50 51 11 12 12 13 14 15 16 17 
+          1   10000000: 18 52 53 54 55 24 25 26 27 28 12 12 12 13 14 15 16 17 
+          1   10000000: 18 19 20 21 22 11 12 12 12 12 13 14 15 16 17 
+          1   10000000: 18 56 57 58 59 60 50 51 11 12 12 13 14 15 16 17 
+          1   10000000: 61 62 63 64 65 8 9 10 11 12 12 13 14 15 16 17 
+          2   20000000: 18 48 49 50 51 11 12 12 12 13 14 15 16 17 
+          1   10000000: 18 52 53 54 55 24 25 26 27 28 12 12 12 12 12 13 14 15 16 17 
+          1   10000000: 66 67 68 69 70 71 72 73 
+          2   20000000: 18 56 57 58 59 60 50 51 11 12 12 12 13 14 15 16 17 
+          1   10000000: 74 75 76 77 78 79 80 81 4 
+          1   10000000: 82 83 84 85 4 
+          1   10000000: 18 48 49 50 51 11 12 12 12 12 12 13 14 15 16 17 
+          1   10000000: 18 86 87 9 10 11 12 12 13 14 15 16 17 
+          1   10000000: 18 48 49 50 51 11 12 13 14 15 16 17 
+Locations
+     1: 0x1043bb17b M=1 runtime.madvise /usr/local/go/src/runtime/sys_darwin.go:253 s=252
+     2: 0x10438a2eb M=1 runtime.sysUsedOS /usr/local/go/src/runtime/mem_darwin.go:33 s=29
+             runtime.sysUsed /usr/local/go/src/runtime/mem.go:77 s=75
+             runtime.(*mheap).allocSpan /usr/local/go/src/runtime/mheap.go:1347 s=1171
+     3: 0x104389aeb M=1 runtime.(*mheap).alloc.func1 /usr/local/go/src/runtime/mheap.go:964 s=958
+     4: 0x1043d187b M=1 runtime.systemstack /usr/local/go/src/runtime/asm_arm64.s:243 s=206
+     5: 0x1043d05c7 M=1 syscall.syscallPtr /usr/local/go/src/runtime/sys_darwin.go:79 s=76
+     6: 0x1043dd5c3 M=1 syscall.fdopendir /usr/local/go/src/syscall/syscall_darwin.go:226 s=225
+     7: 0x1043f548f M=1 internal/poll.(*FD).OpenDir /usr/local/go/src/internal/poll/fd_opendir_darwin.go:24 s=15
+     8: 0x1043f80df M=1 os.(*File).readdir /usr/local/go/src/os/dir_darwin.go:29 s=27
+     9: 0x1043f7d33 M=1 os.(*File).ReadDir /usr/local/go/src/os/dir.go:98 s=94
+    10: 0x1043f7e5b M=1 os.ReadDir /usr/local/go/src/os/dir.go:122 s=115
+    11: 0x1044288df M=1 path/filepath.walkDir /usr/local/go/src/path/filepath/path.go:451 s=442
+    12: 0x104428a0b M=1 path/filepath.walkDir /usr/local/go/src/path/filepath/path.go:465 s=442
+    13: 0x104428b1b M=1 path/filepath.WalkDir /usr/local/go/src/path/filepath/path.go:533 s=528
+    14: 0x1044fa94f M=1 github.com/mordfustang21/gotest.getTestsFromDir /Users/dlaird/projects/gotest/search.go:27 s=24
+    15: 0x1044fcef3 M=1 github.com/mordfustang21/gotest.Benchmark_findTests /Users/dlaird/projects/gotest/search_test.go:45 s=43
+    16: 0x1044322df M=1 testing.(*B).runN /usr/local/go/src/testing/benchmark.go:193 s=178
+    17: 0x104432e4f M=1 testing.(*B).launch /usr/local/go/src/testing/benchmark.go:316 s=275
+    18: 0x1043d0367 M=1 syscall.syscall /usr/local/go/src/runtime/sys_darwin.go:24 s=21
+    19: 0x1043ded2f M=1 syscall.Open /usr/local/go/src/syscall/zsyscall_darwin_arm64.go:1162 s=1156
+    20: 0x1043fa32b M=1 os.open /usr/local/go/src/os/file_open_unix.go:15 s=14
+             os.openFileNolog /usr/local/go/src/os/file_unix.go:272 s=260
+    21: 0x1043f95bf M=1 os.OpenFile /usr/local/go/src/os/file.go:374 s=372
+    22: 0x1043f7df3 M=1 os.Open /usr/local/go/src/os/file.go:354 s=353
+             os.ReadDir /usr/local/go/src/os/dir.go:116 s=115
+    23: 0x1043f9923 M=1 os.Open /usr/local/go/src/os/file.go:354 s=353
+             os.ReadFile /usr/local/go/src/os/file.go:768 s=767
+    24: 0x104450c1f M=1 go/parser.readSource /usr/local/go/src/go/parser/interface.go:41 s=24
+    25: 0x104450d5f M=1 go/parser.ParseFile /usr/local/go/src/go/parser/interface.go:90 s=84
+    26: 0x1044fa0c3 M=1 github.com/mordfustang21/gotest.findBenchmarks /Users/dlaird/projects/gotest/benchmarks.go:114 s=110
+    27: 0x1044faadf M=1 github.com/mordfustang21/gotest.getTestsFromDir.func1 /Users/dlaird/projects/gotest/search.go:43 s=27
+    28: 0x104428833 M=1 path/filepath.walkDir /usr/local/go/src/path/filepath/path.go:443 s=442
+    29: 0x1043d4778 M=1 runtime.memmove /usr/local/go/src/runtime/memmove_arm64.s:171 s=29
+    30: 0x10438feeb M=1 runtime.stkbucket /usr/local/go/src/runtime/mprof.go:317 s=263
+    31: 0x10439044f M=1 runtime.mProf_Malloc /usr/local/go/src/runtime/mprof.go:431 s=425
+    32: 0x10436dfef M=1 runtime.profilealloc /usr/local/go/src/runtime/malloc.go:1426 s=1420
+    33: 0x10436db27 M=1 runtime.mallocgc /usr/local/go/src/runtime/malloc.go:1267 s=971
+    34: 0x1043733b3 M=1 runtime.newobject /usr/local/go/src/runtime/malloc.go:1390 s=1389
+             runtime.mapassign_faststr /usr/local/go/src/runtime/map_faststr.go:221 s=203
+    35: 0x1044639a7 M=1 go/ast.(*Scope).Insert /usr/local/go/src/go/ast/scope.go:44 s=42
+             go/parser.(*resolver).shortVarDecl /usr/local/go/src/go/parser/resolver.go:174 s=158
+    36: 0x104465aff M=1 go/parser.(*resolver).Visit /usr/local/go/src/go/parser/resolver.go:315 s=250
+    37: 0x104449e83 M=1 go/ast.Walk /usr/local/go/src/go/ast/walk.go:51 s=50
+    38: 0x104465dbf M=1 go/parser.(*resolver).walkStmts /usr/local/go/src/go/parser/resolver.go:246 s=244
+             go/parser.(*resolver).Visit /usr/local/go/src/go/parser/resolver.go:330 s=250
+    39: 0x10446657f M=1 go/parser.(*resolver).Visit /usr/local/go/src/go/parser/resolver.go:447 s=250
+    40: 0x1044680cb M=1 go/parser.(*resolver).walkStmts /usr/local/go/src/go/parser/resolver.go:246 s=244
+             go/parser.(*resolver).walkBody /usr/local/go/src/go/parser/resolver.go:611 s=605
+    41: 0x10446484b M=1 go/parser.(*resolver).Visit /usr/local/go/src/go/parser/resolver.go:265 s=250
+    42: 0x10444c047 M=1 go/ast.walkExprList /usr/local/go/src/go/ast/walk.go:26 s=24
+             go/ast.Walk /usr/local/go/src/go/ast/walk.go:144 s=50
+    43: 0x10444d093 M=1 go/ast.Walk /usr/local/go/src/go/ast/walk.go:206 s=50
+    44: 0x104466167 M=1 go/parser.(*resolver).Visit /usr/local/go/src/go/parser/resolver.go:503 s=250
+    45: 0x104462cdb M=1 go/parser.resolveFile /usr/local/go/src/go/parser/resolver.go:32 s=21
+    46: 0x10446292f M=1 go/parser.(*parser).parseFile /usr/local/go/src/go/parser/parser.go:2907 s=2841
+    47: 0x104450e03 M=1 go/parser.ParseFile /usr/local/go/src/go/parser/interface.go:124 s=84
+    48: 0x1043de823 M=1 syscall.closedir /usr/local/go/src/syscall/zsyscall_darwin_arm64.go:559 s=558
+    49: 0x1043fa4cf M=1 os.(*dirInfo).close /usr/local/go/src/os/dir_darwin.go:23 s=19
+             os.(*file).close /usr/local/go/src/os/file_unix.go:311 s=306
+    50: 0x1043f805f M=1 os.(*File).Close /usr/local/go/src/os/file_posix.go:23 s=19
+    51: 0x1043f7eeb M=1 os.ReadDir /usr/local/go/src/os/dir.go:124 s=115
+    52: 0x1043df7f7 M=1 syscall.Fstat /usr/local/go/src/syscall/zsyscall_darwin_arm64.go:1897 s=1896
+    53: 0x1043f678b M=1 internal/poll.(*FD).Fstat.func1 /usr/local/go/src/internal/poll/fd_unix.go:643 s=642
+             internal/poll.ignoringEINTR /usr/local/go/src/internal/poll/fd_posix.go:74 s=72
+             internal/poll.(*FD).Fstat /usr/local/go/src/internal/poll/fd_unix.go:642 s=637
+    54: 0x1043fb23b M=1 os.(*File).Stat /usr/local/go/src/os/stat_unix.go:20 s=15
+    55: 0x1043f9953 M=1 os.ReadFile /usr/local/go/src/os/file.go:775 s=767
+    56: 0x1043de743 M=1 syscall.Close /usr/local/go/src/syscall/zsyscall_darwin_arm64.go:545 s=544
+    57: 0x1043f5d67 M=1 internal/poll.(*SysFile).destroy /usr/local/go/src/internal/poll/fd_unixjs.go:24 s=18
+             internal/poll.(*FD).destroy /usr/local/go/src/internal/poll/fd_unix.go:81 s=76
+    58: 0x1043f533f M=1 internal/poll.(*FD).decref /usr/local/go/src/internal/poll/fd_mutex.go:213 s=211
+    59: 0x1043f5df7 M=1 internal/poll.(*FD).Close /usr/local/go/src/internal/poll/fd_unix.go:104 s=90
+    60: 0x1043fa4fb M=1 os.(*file).close /usr/local/go/src/os/file_unix.go:315 s=306
+    61: 0x1043bb5e7 M=1 runtime.fcntl /usr/local/go/src/runtime/sys_darwin.go:442 s=437
+    62: 0x1043f4b5b M=1 internal/syscall/unix.Fcntl /usr/local/go/src/internal/syscall/unix/fcntl_unix.go:20 s=19
+    63: 0x1043f68d7 M=1 internal/poll.DupCloseOnExec /usr/local/go/src/internal/poll/fd_unix.go:653 s=651
+    64: 0x1043f6aef M=1 internal/poll.(*FD).Dup /usr/local/go/src/internal/poll/fd_unix.go:676 s=671
+    65: 0x1043f546b M=1 internal/poll.(*FD).OpenDir /usr/local/go/src/internal/poll/fd_opendir_darwin.go:18 s=15
+    66: 0x1043bb78f M=1 runtime.pthread_cond_wait /usr/local/go/src/runtime/sys_darwin.go:507 s=506
+    67: 0x1043962e3 M=1 runtime.semasleep /usr/local/go/src/runtime/os_darwin.go:71 s=39
+    68: 0x10436c227 M=1 runtime.notesleep /usr/local/go/src/runtime/lock_sema.go:183 s=167
+    69: 0x1043a0643 M=1 runtime.mPark /usr/local/go/src/runtime/proc.go:1761 s=1759
+             runtime.stopm /usr/local/go/src/runtime/proc.go:2782 s=2766
+    70: 0x1043a25cf M=1 runtime.findRunnable /usr/local/go/src/runtime/proc.go:3512 s=3139
+    71: 0x1043a3a17 M=1 runtime.schedule /usr/local/go/src/runtime/proc.go:3868 s=3839
+    72: 0x1043a40af M=1 runtime.park_m /usr/local/go/src/runtime/proc.go:4036 s=4007
+    73: 0x1043d17e3 M=1 runtime.mcall /usr/local/go/src/runtime/asm_arm64.s:192 s=166
+    74: 0x1043bb07b M=1 runtime.pthread_kill /usr/local/go/src/runtime/sys_darwin.go:177 s=176
+    75: 0x1043b1cab M=1 runtime.signalM /usr/local/go/src/runtime/os_darwin.go:475 s=474
+             runtime.preemptM /usr/local/go/src/runtime/signal_unix.go:385 s=368
+    76: 0x1043a9a3b M=1 runtime.preemptone /usr/local/go/src/runtime/proc.go:6226 s=6205
+    77: 0x104382607 M=1 runtime.(*gcControllerState).enlistWorker /usr/local/go/src/runtime/mgcpacer.go:723 s=691
+    78: 0x10438853f M=1 runtime.(*gcWork).balance /usr/local/go/src/runtime/mgcwork.go:304 s=288
+    79: 0x104380a4b M=1 runtime.gcDrainN /usr/local/go/src/runtime/mgcmark.go:1304 s=1289
+    80: 0x10437f613 M=1 runtime.gcAssistAlloc1 /usr/local/go/src/runtime/mgcmark.go:665 s=628
+    81: 0x10437f4d3 M=1 runtime.gcAssistAlloc.func1 /usr/local/go/src/runtime/mgcmark.go:556 s=555
+    82: 0x1043bb65f M=1 runtime.kevent /usr/local/go/src/runtime/sys_darwin.go:458 s=457
+    83: 0x104395f4f M=1 runtime.netpoll /usr/local/go/src/runtime/netpoll_kqueue.go:141 s=121
+    84: 0x10439e4eb M=1 runtime.startTheWorldWithSema /usr/local/go/src/runtime/proc.go:1559 s=1554
+    85: 0x10437ae37 M=1 runtime.gcStart.func3 /usr/local/go/src/runtime/mgc.go:747 s=746
+    86: 0x1043def6b M=1 syscall.readdir_r /usr/local/go/src/syscall/zsyscall_darwin_arm64.go:1260 s=1259
+    87: 0x1043f8313 M=1 os.(*File).readdir /usr/local/go/src/os/dir_darwin.go:48 s=27
+Mappings
+1: 0x104360000/0x104564000/0x0 /private/var/folders/c6/16wys7hn56x0tsnvs49b2m1c0000gn/T/go-build2971421034/b001/gotest.test  [FN]

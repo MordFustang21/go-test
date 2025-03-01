@@ -237,7 +237,7 @@ func getLastCommand() (HistoryEntry, error) {
 
 func runHistoryEntry(he HistoryEntry) {
 	var outputWriter io.Writer = os.Stdout
-	if config.ColorizeOutput {
+	if globalConfig.ColorizeOutput {
 		var colorReader io.Reader
 		colorReader, outputWriter = io.Pipe()
 		go colorizeOutput(colorReader)

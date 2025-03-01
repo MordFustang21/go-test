@@ -40,6 +40,16 @@ func Test_findTests(t *testing.T) {
 	}
 }
 
+func Benchmark_findTests(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		tests, err := getTestsFromDir("/Users/dlaird/projects/docuverse-server/", true)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = tests
+	}
+}
+
 func boolPtr(b bool) *bool {
 	return &b
 }

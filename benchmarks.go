@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/mordfustang21/gotest/pkg/flamegraph"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -83,17 +84,26 @@ func runBenchmark(t Test) {
 
 	if *withCPUProfile {
 		fmt.Println("Wrote CPU Profile to:", cpuProfile)
-		// show top methods
-		cmd := exec.Command("go", "tool", "pprof", "-top", cpuProfile)
-		cmd.Stdout = os.Stdout
-		cmd.Run()
+		// Generate the flamegraph
+		svgData, err := flamegraph.GenerateFlamegraph(cpuProfile)
+		if err != nil {
+			panic(err)
+		}
+
+		err = flamegraph.ServeFlamegraph(svgData)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if *withMemoryProfile {
 		fmt.Println("Wrote Memory Profile to:", memoryProfile)
 		cmd := exec.Command("go", "tool", "pprof", "-top", memoryProfile)
 		cmd.Stdout = os.Stdout
-		cmd.Run()
+		err = cmd.Run()
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
