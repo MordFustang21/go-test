@@ -30,10 +30,13 @@ func debugTest(t Test, path, modRoot string) (exec.Cmd, bool) {
 	tempFile.Write([]byte("c\n"))
 	tempFile.Close()
 
+	args := []string{"dlv", "test", "--init", tempFile.Name(), resolvePackage(modRoot, path), "--", "-test.run", t.Name}
+	fmt.Println("Running test with debugger:", args)
+
 	cmd := exec.Cmd{
 		Path:   p,
 		Env:    os.Environ(),
-		Args:   []string{"dlv", "test", "--init", tempFile.Name(), resolvePackage(modRoot, path), "--", "-test.run", t.Name},
+		Args:   args,
 		Dir:    modRoot,
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,

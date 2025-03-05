@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -59,8 +58,19 @@ func WithDefaultConfig() ConfigOption {
 		f, err := os.Open(configPath)
 		switch {
 		case errors.Is(err, os.ErrNotExist):
-			log.Println("No config file exists")
-			// TODO: create one with the default config for user to view.
+			// Create directory if it doesn't exist
+			err = os.MkdirAll(filepath.Dir(configPath), 0755)
+			if err != nil {
+				panic(err)
+			}
+
+			f, err = os.Create(configPath)
+			if err != nil {
+				panic(err)
+			}
+
+			co.configData = f
+
 			return nil
 		case err != nil:
 			return err
